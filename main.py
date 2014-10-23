@@ -1,8 +1,11 @@
 import random
+from tkinter import *
+from tkinter import ttk
 
 # Settings
 mazeWidth = 10
 mazeHeight = 10
+cell_size = 20
 
 class Cell():
 	"""docstring for Cell"""
@@ -91,40 +94,48 @@ def break_wall(current_cell, target_cell):
 		current_cell.remove_wall("N")
 		target_cell.remove_wall("S")
 
-def print_cell(cell):
-	x_walls = []
-	y_walls = []
-	if "N" in cell.get_walls():
-		x_walls.append(0)
-
-	if "S" in cell.get_walls():
-		x_walls.append(2)
-
-	if "E" in cell.get_walls():
-		y_walls.append(0)
-
-	if "W" in cell.get_walls():
-		y_walls.append(2)
-
-	print_square(x_walls, y_walls)
-
-def print_square(x_array, y_array):
-	for y in range(3):
-		for x in range(3):
-			print('*' if y in y_array or x in x_array else ' ', end='')
-		print()
-
 def assert_solution(solution):
 	for y in range(0, mazeHeight):
 		for x in range(0, mazeWidth):
 			"If the solution was successful, then that means that every cell shuld have less then 4 walls"
 			assert len(solution[x][y].get_walls()) < 4
+
+	assert "N" and "E" in solution[0][0].get_walls()
+	assert "N" and "W" in solution[mazeWidth-1][0].get_walls()
+	assert "S" and "W" in solution[mazeWidth-1][mazeHeight-1].get_walls()
+	assert "S" and "E" in solution[0][mazeHeight-1].get_walls()
+
+def print_cell(canvas, cell):
+	x, y = (cell.get_x() + 1) * cell_size, (cell.get_y() + 1) * cell_size
+	if "N" in cell.get_walls():
+		draw_line(x, y, x + cell_size, y)
+
+	if "S" in cell.get_walls():
+		draw_line(x, y + cell_size, x + cell_size, y + cell_size)
+
+	if "E" in cell.get_walls():
+		draw_line(x, y, x, y + cell_size)
+
+	if "W" in cell.get_walls():
+		draw_line(x + cell_size, y, x + cell_size, y + cell_size)
+
+def draw_line(x, y, endX, endY):
+	canvas.create_line(x, y, endX, endY)	
 		
 grid = create_grid()
 solution = calculate_maze(grid)
 assert_solution(solution)
 
-temp = 0
+
+root = Tk()
+root.columnconfigure(0, weight=1)
+root.rowconfigure(0, weight=1)
+
+canvas = Canvas(root)
+canvas.grid(column=0, row=0, sticky=(N, W, E, S))
+
 for y in range(0, mazeHeight):
 	for x in range(0, mazeWidth):
-		print(solution[x][y].get_walls())
+		print_cell(canvas, solution[x][y])
+
+root.mainloop()
