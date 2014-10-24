@@ -1,32 +1,29 @@
 import random
+import time
+import threading
+
+from cell import Cell
 from tkinter import *
 from tkinter import ttk
+
 
 # Settings
 mazeWidth = 10
 mazeHeight = 10
 cell_size = 20
 
-class Cell():
-	"""docstring for Cell"""
-	def __init__(self, x, y):
-		super(Cell, self).__init__()
-		self.walls = ["N", "S", "E", "W"]
-		self.x = x
-		self.y = y
+print(10 + (mazeWidth * cell_size))
 
-	def get_x(self):
-		return self.x
+# Graphics
+root = Tk()
+width = str(cell_size * 2 + (mazeWidth * cell_size))
+height = str(cell_size * 2 + (mazeHeight * cell_size))
+root.geometry(width + "x" + height)
+root.columnconfigure(0, weight=1)
+root.rowconfigure(0, weight=1)
 
-	def get_y(self):
-		return self.y
-
-	def remove_wall(self, wall):
-		if wall in self.walls:
-			self.walls.remove(wall)
-
-	def get_walls(self):
-		return self.walls
+canvas = Canvas(root, background='white')
+canvas.grid(column=0, row=0, sticky=(N, W, E, S))
 
 
 def create_grid():
@@ -34,28 +31,6 @@ def create_grid():
 	for y in range(0, mazeHeight):
 		for x in range(0, mazeWidth):
 			grid[x][y] = Cell(x, y)
-	return grid
-
-def calculate_maze(grid):
-	n_cells = mazeWidth * mazeHeight
-	current_cell = random.choice(random.choice(grid))
-	cell_stack = []
-	visited_cells = []
-
-	while len(visited_cells) < n_cells:
-		neighbours = list(get_neighbours(grid, current_cell.get_x(), current_cell.get_y()))
-		possible_neighbours = []
-		if neighbours:
-			possible_neighbours = [c for c in neighbours if c not in visited_cells]
-
-		if possible_neighbours:
-			choice_cell = random.choice(possible_neighbours)
-			break_wall(current_cell, choice_cell)
-			cell_stack.append(choice_cell)
-			current_cell = choice_cell
-			visited_cells.append(current_cell)
-		else:		
-			current_cell = cell_stack.pop()
 	return grid
 
 #"A function is not executed from the beginning every time a new value is requested; instead, it is resumed from the same place where it left off last time, which is the line after yield" - riv
@@ -66,11 +41,9 @@ def get_neighbours(grid, x, y):
 	maxY = y+1 if y < (mazeHeight - 1) else y
 
 	for i in range(baseY, maxY + 1):
-		#if grid[x][i] != grid[x][y]:
 		yield grid[x][i]
 
 	for i in range(baseX, maxX + 1):
-		#if grid[i][y] != grid[x][y]:
 		yield grid[i][y]
 
 def break_wall(current_cell, target_cell):
@@ -94,17 +67,6 @@ def break_wall(current_cell, target_cell):
 		current_cell.remove_wall("N")
 		target_cell.remove_wall("S")
 
-def assert_solution(solution):
-	for y in range(0, mazeHeight):
-		for x in range(0, mazeWidth):
-			"If the solution was successful, then that means that every cell shuld have less then 4 walls"
-			assert len(solution[x][y].get_walls()) < 4
-
-	assert "N" and "E" in solution[0][0].get_walls()
-	assert "N" and "W" in solution[mazeWidth-1][0].get_walls()
-	assert "S" and "W" in solution[mazeWidth-1][mazeHeight-1].get_walls()
-	assert "S" and "E" in solution[0][mazeHeight-1].get_walls()
-
 def print_cell(canvas, cell):
 	x, y = (cell.get_x() + 1) * cell_size, (cell.get_y() + 1) * cell_size
 	if "N" in cell.get_walls():
@@ -120,22 +82,58 @@ def print_cell(canvas, cell):
 		draw_line(x + cell_size, y, x + cell_size, y + cell_size)
 
 def draw_line(x, y, endX, endY):
-	canvas.create_line(x, y, endX, endY)	
-		
+	canvas.create_line(x, y, endX, endY)
+
+def assert_solution(solution):
+	for y in range(0, mazeHeight):
+		for x in range(0, mazeWidth):
+			"If the solution was successful, then that means that every cell shuld have less then 4 walls"
+			assert len(solution[x][y].get_walls()) < 4
+
+	assert "N" and "E" in solution[0][0].get_walls()
+	assert "N" and "W" in solution[mazeWidth-1][0].get_walls()
+	assert "S" and "W" in solution[mazeWidth-1][mazeHeight-1].get_walls()
+	assert "S" and "E" in solution[0][mazeHeight-1].get_walls()
+
+
+"Calculate a solution and print it"
 grid = create_grid()
-solution = calculate_maze(grid)
-assert_solution(solution)
+n_cells = mazeWidth * mazeHeight
+current_cell = random.choice(random.choice(grid))
+cell_stack = []
+visited_cells = []
 
+def calculate_maze(grid):
+	global current_cell
+	if len(visited_cells) < n_cells:
+		neighbours = list(get_neighbours(grid, current_cell.get_x(), current_cell.get_y()))
+		possible_neighbours = []
+		if neighbours:
+			possible_neighbours = [c for c in neighbours if c not in visited_cells]
 
-root = Tk()
-root.columnconfigure(0, weight=1)
-root.rowconfigure(0, weight=1)
+		if possible_neighbours:
+			choice_cell = random.choice(possible_neighbours)
+			break_wall(current_cell, choice_cell)
+			cell_stack.append(choice_cell)
+			current_cell = choice_cell
+			visited_cells.append(current_cell)
+		else:		
+			current_cell = cell_stack.pop()
 
-canvas = Canvas(root)
-canvas.grid(column=0, row=0, sticky=(N, W, E, S))
+		# Clear the window
+		canvas.delete("all")
 
-for y in range(0, mazeHeight):
-	for x in range(0, mazeWidth):
-		print_cell(canvas, solution[x][y])
+		# Print cells
+		for y in range(0, mazeHeight):
+			for x in range(0, mazeWidth):
+				print_cell(canvas, grid[x][y])
+				
+		canvas.after(20, calculate_maze, grid)
+	else:
+		# When done assert solution
+		assert_solution(grid)
+		print("Calculation finished")
 
-root.mainloop()
+if __name__ == '__main__':
+	solution = calculate_maze(grid)
+	root.mainloop()
