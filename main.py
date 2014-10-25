@@ -12,8 +12,6 @@ mazeWidth = 10
 mazeHeight = 10
 cell_size = 20
 
-print(10 + (mazeWidth * cell_size))
-
 # Graphics
 root = Tk()
 width = str(cell_size * 2 + (mazeWidth * cell_size))
@@ -102,6 +100,7 @@ n_cells = mazeWidth * mazeHeight
 current_cell = random.choice(random.choice(grid))
 cell_stack = []
 visited_cells = []
+tree = []
 
 def calculate_maze(grid):
 	global current_cell
@@ -117,7 +116,9 @@ def calculate_maze(grid):
 			cell_stack.append(choice_cell)
 			current_cell = choice_cell
 			visited_cells.append(current_cell)
-		else:		
+		else:
+			if len(cell_stack) > all(path for path in tree):
+				tree.append(cell_stack.copy())
 			current_cell = cell_stack.pop()
 
 		# Clear the window
@@ -127,11 +128,23 @@ def calculate_maze(grid):
 		for y in range(0, mazeHeight):
 			for x in range(0, mazeWidth):
 				print_cell(canvas, grid[x][y])
-				
+
 		canvas.after(20, calculate_maze, grid)
 	else:
 		# When done assert solution
 		assert_solution(grid)
+		longest_path = sorted(tree, key=lambda path: len(path))[-1]
+
+		# Draw start finish
+		startX = (longest_path[0].get_x() + 1) * cell_size
+		startY = (longest_path[0].get_y() + 1) * cell_size
+
+		endX = (longest_path[-1].get_x() + 1) * cell_size
+		endY = (longest_path[-1].get_y() + 1) * cell_size
+
+		canvas.create_rectangle(startX + 2, startY + 2, (startX + cell_size) - 2, (startY + cell_size) - 2, fill="green")
+		canvas.create_rectangle(endX + 2, endY + 2, (endX + cell_size) - 2, (endY + cell_size) - 2, fill="red")
+
 		print("Calculation finished")
 
 if __name__ == '__main__':
